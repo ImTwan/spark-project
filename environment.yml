@@ -1,0 +1,16 @@
+name: pyspark_conda_env
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.10
+  - pyspark=3.5.1
+  - pip
+
+  - pip:
+      - IP2Location
+      - ua-parser
+      - user-agents
+      - conda-pack
+

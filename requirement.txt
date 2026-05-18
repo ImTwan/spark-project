@@ -1,0 +1,10 @@
+pyspark==3.5.1
+ip2location
+user-agents
+streamlit
+pandas
+plotly
+sqlalchemy
+psycopg2-binary
+
+
