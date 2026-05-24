@@ -1,14 +1,14 @@
 from pyspark.sql.functions import col, from_json
-from pyspark.sql.types import StructType, StructField, StringType, ArrayType, LongType
+from pyspark.sql.types import (
+    StructType, StructField, StringType,
+    ArrayType, LongType
+)
 
-
-# Schema cho option
 option_schema = StructType([
     StructField("option_id", StringType(), True),
     StructField("option_label", StringType(), True),
 ])
 
-# Schema chính
 log_schema = StructType([
     StructField("id", StringType(), True),
     StructField("api_version", StringType(), True),
@@ -29,10 +29,11 @@ log_schema = StructType([
 
 def parse_json(df):
 
-    df_parsed = (
-        df.selectExpr("CAST(value AS STRING) as json_str") \
-        .select(from_json(col("json_str"), log_schema).alias("data")) \
-        .select("data.*")
+    df = df.selectExpr("CAST(value AS STRING) as json_str")
+
+    df = df.withColumn(
+        "data",
+        from_json(col("json_str"), log_schema)
     )
 
-    return df_parsed
+    return df.select("data.*")

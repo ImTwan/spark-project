@@ -2,43 +2,30 @@ services:
 
   postgres:
 
-    image: postgres:16.3
+    image: postgres:15
 
-    container_name: postgres
+    container_name: report-postgres
 
-    hostname: postgres
+    hostname: report-postgres
 
-    networks:
-      - streaming-network
+    restart: always
 
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: UnigapPostgres@123
+      POSTGRES_PASSWORD: Uni1234
       POSTGRES_DB: postgres
-      PGDATA: /var/lib/postgresql/data
 
     ports:
       - "5432:5432"
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
-
-      # AUTO RUN DDL
       - ../../../../sql/ddl.sql:/docker-entrypoint-initdb.d/ddl.sql
 
-  adminer:
-
-    image: adminer:4.8.1
-
-    container_name: adminer
-
-    hostname: adminer
-
     networks:
-      - streaming-network
-
-    ports:
-      - "8380:8080"
+      streaming-network:
+        aliases:
+          - report-postgres
 
 networks:
 
@@ -46,6 +33,4 @@ networks:
     external: true
 
 volumes:
-
   postgres_data:
-    driver: local

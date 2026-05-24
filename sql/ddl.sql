@@ -1,92 +1,53 @@
 CREATE TABLE IF NOT EXISTS dim_product (
-
-    sk_product SERIAL PRIMARY KEY,
-
-    product_id VARCHAR(255) NOT NULL,
-
-    option VARCHAR(255)
+    product_id VARCHAR(255) PRIMARY KEY,
+    option TEXT
 );
 
 
-
 CREATE TABLE IF NOT EXISTS dim_customer (
-
-    sk_customer SERIAL PRIMARY KEY,
-
-    email VARCHAR(255) NOT NULL,
-
-    ip VARCHAR(255) NOT NULL
+    sk_customer INT PRIMARY KEY,
+    email VARCHAR(255),
+    ip VARCHAR(255)
 );
 
 
 
 CREATE TABLE IF NOT EXISTS dim_store (
-
-    sk_store SERIAL PRIMARY KEY,
-
-    store_id VARCHAR(255) NOT NULL,
-
-    store_name VARCHAR(255)
+    store_id VARCHAR(255) PRIMARY KEY,
+    store_name VARCHAR(255) NOT NULL 
 );
 
 
-
 CREATE TABLE IF NOT EXISTS dim_agent (
-
-    sk_agent SERIAL PRIMARY KEY,
-
+    sk_agent INT PRIMARY KEY,
     browser VARCHAR(255),
-
     os VARCHAR(255)
-
 );
 
 
 
 CREATE TABLE IF NOT EXISTS dim_location (
-
-    sk_location SERIAL PRIMARY KEY,
-
-    country_name_short VARCHAR(255) NOT NULL,
- 
-    country_name_long VARCHAR(255) NOT NULL,
-
-    city_name VARCHAR(255) NOT NULL,
-
-    region_name VARCHAR(255) NOT NULL
-
+    sk_location INT PRIMARY KEY,
+    country_name_long VARCHAR(255),
+    city_name VARCHAR(255),
+    region_name VARCHAR(255)
 );
 
 
-
 CREATE TABLE IF NOT EXISTS dim_date (
-
-    sk_date SERIAL PRIMARY KEY,
-
-    full_date TIMESTAMP,
-
+    sk_date BIGINT PRIMARY KEY,
+    full_date DATE,
     day_of_week INT,
-
     day_of_month INT,
-
     day_of_year INT,
-
-    year_month VARCHAR(255),
-
+    year_month VARCHAR(20),
     month INT,
-
     week_of_year INT,
-
     quarter_number INT,
-
     year INT,
-
     year_number INT,
-
     is_weekend BOOLEAN,
-
     hour INT,
-
     minute INT
 );
 
@@ -94,37 +55,30 @@ CREATE TABLE IF NOT EXISTS dim_date (
 
 CREATE TABLE IF NOT EXISTS fact_product_view (
 
-    view_id SERIAL PRIMARY KEY,
+    id VARCHAR(255) PRIMARY KEY,
 
-    sk_product INT,
-
-    sk_store INT,
+    product_id VARCHAR(255),
+    store_id VARCHAR(255),
 
     sk_customer INT,
-
     sk_agent INT,
-
     sk_location INT,
-
     sk_date INT,
 
     api_version VARCHAR(255),
-
     collection VARCHAR(255),
 
     current_url TEXT,
-
     referrer_url TEXT,
 
     local_time TIMESTAMP,
-
     time_stamp BIGINT,
 
-    FOREIGN KEY (sk_product)
-        REFERENCES dim_product(sk_product),
+    FOREIGN KEY (product_id)
+        REFERENCES dim_product(product_id),
 
-    FOREIGN KEY (sk_store)
-        REFERENCES dim_store(sk_store),
+    FOREIGN KEY (store_id)
+        REFERENCES dim_store(store_id),
 
     FOREIGN KEY (sk_customer)
         REFERENCES dim_customer(sk_customer),
@@ -137,7 +91,88 @@ CREATE TABLE IF NOT EXISTS fact_product_view (
 
     FOREIGN KEY (sk_date)
         REFERENCES dim_date(sk_date)
+
 );
+
+
+-- =====================================================
+-- UNKNOWN DIMENSION ROWS
+-- =====================================================
+
+INSERT INTO dim_product (product_id, option)
+VALUES (...)
+ON CONFLICT (product_id)
+DO UPDATE SET option = EXCLUDED.option;
+
+
+INSERT INTO dim_customer
+(sk_customer, email, ip)
+VALUES
+(0, 'UNKNOWN', '0.0.0.0')
+ON CONFLICT DO NOTHING;
+
+
+INSERT INTO dim_agent
+(sk_agent, browser, os)
+VALUES
+(0, 'UNKNOWN', 'UNKNOWN')
+ON CONFLICT DO NOTHING;
+
+
+INSERT INTO dim_location
+(
+    sk_location,
+    country_name_long,
+    city_name,
+    region_name
+)
+VALUES
+(
+    0,
+    'UNKNOWN',
+    'UNKNOWN',
+    'UNKNOWN'
+)
+ON CONFLICT DO NOTHING;
+
+
+INSERT INTO dim_date
+(
+    sk_date,
+    full_date,
+    day_of_week,
+    day_of_month,
+    day_of_year,
+    year_month,
+    month,
+    week_of_year,
+    quarter_number,
+    year,
+    year_number,
+    is_weekend,
+    hour,
+    minute
+)
+VALUES
+(
+    0,
+    '1970-01-01',
+    0,
+    0,
+    0,
+    '1970-01',
+    0,
+    0,
+    0,
+    1970,
+    1970,
+    false,
+    0,
+    0
+)
+ON CONFLICT DO NOTHING;
+
+
 
 -- =====================================================
 -- REPORT 1
@@ -151,7 +186,7 @@ SELECT
     COUNT(*) AS total_views
 FROM fact_product_view f
 JOIN dim_product p
-ON f.sk_product = p.sk_product
+ON f.product_id = p.product_id
 WHERE DATE(f.local_time) = CURRENT_DATE
 GROUP BY p.product_id
 ORDER BY total_views DESC
@@ -167,14 +202,13 @@ LIMIT 10;
 CREATE OR REPLACE VIEW vw_top_10_countries AS
 
 SELECT
-    l.country_name_long,
-    COUNT(*) AS total_views
+    l.country_name_long AS country,
+    COUNT(*) AS views
 FROM fact_product_view f
-JOIN dim_location l
-ON f.sk_location = l.sk_location
+JOIN dim_location l ON f.sk_location = l.sk_location
 WHERE DATE(f.local_time) = CURRENT_DATE
 GROUP BY l.country_name_long
-ORDER BY total_views DESC
+ORDER BY views DESC
 LIMIT 10;
 
 
@@ -204,7 +238,6 @@ LIMIT 5;
 -- REPORT 4
 -- Store views by country
 -- =====================================================
-
 CREATE OR REPLACE VIEW vw_store_views_by_country AS
 
 SELECT
@@ -214,9 +247,9 @@ SELECT
     COUNT(*) AS total_views
 FROM fact_product_view f
 JOIN dim_location l
-ON f.sk_location = l.sk_location
+    ON f.sk_location = l.sk_location
 JOIN dim_store s
-ON f.sk_store = s.sk_store
+    ON f.store_id = s.store_id
 GROUP BY
     l.country_name_long,
     s.store_id,
@@ -238,7 +271,7 @@ SELECT
     COUNT(*) AS total_views
 FROM fact_product_view f
 JOIN dim_product p
-ON f.sk_product = p.sk_product
+ON f.product_id = p.product_id
 JOIN dim_date d
 ON f.sk_date = d.sk_date
 WHERE DATE(f.local_time) = CURRENT_DATE

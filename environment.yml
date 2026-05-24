@@ -12,5 +12,4 @@ dependencies:
       - IP2Location
       - ua-parser
       - user-agents
-      - conda-pack
-
+      - psycopg2-binary

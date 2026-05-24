@@ -1,185 +1,153 @@
-from pyspark.sql import functions as F
+import pyspark.sql.functions as F
 
 
-def build_fact_table(enriched_df, dim_product, dim_customer, dim_store, dim_agent, dim_location, dim_date):
+def build_fact_table(
+    df,
+    dim_customer,
+    dim_agent,
+    dim_location,
+    dim_date,
+    dim_store,
+    dim_product
+):
 
-    # ========================================================
-    # PRODUCT
-    # ========================================================
+    # =====================================================
+    # CLEAN
+    # =====================================================
 
-    fact_df = enriched_df.join(
-
-        dim_product.select(
-            "sk_product",
-            "product_id"
-        ),
-
-        on="product_id",
-
-        how="left"
+    df = (
+        df
+        .filter(F.col("id").isNotNull())
+        .filter(F.col("product_id").isNotNull())
+        .filter(F.col("store_id").isNotNull())
     )
 
+    # =====================================================
+    # FIX LOCAL TIME
+    # =====================================================
 
-    # ========================================================
-    # CUSTOMER
-    # ========================================================
-
-    fact_df = fact_df.join(
-
-        dim_customer.select(
-            "sk_customer",
-            "email",
-            "ip"
-        ),
-
-        on=[
-            "email",
-            "ip"
-        ],
-
-        how="left"
+    df = df.withColumn(
+        "local_time",
+        F.to_timestamp("local_time")
     )
 
+    # =====================================================
+    # JOIN CUSTOMER
+    # =====================================================
 
-    # ========================================================
-    # STORE
-    # ========================================================
-
-    fact_df = fact_df.join(
-
-        dim_store.select(
-            "sk_store",
-            "store_id"
-        ),
-
-        on="store_id",
-
-        how="left"
+    customer = dim_customer.select(
+        "email",
+        "ip",
+        "sk_customer"
     )
 
-
-    # ========================================================
-    # AGENT
-    # ========================================================
-
-    fact_df = fact_df.join(
-
-        dim_agent.select(
-            "sk_agent",
-            "browser",
-            "os"
-        ),
-
-        on=[
-            "browser",
-            "os"
-        ],
-
-        how="left"
+    df = df.join(
+        customer,
+        ["email", "ip"],
+        "left"
     )
 
+    # =====================================================
+    # JOIN AGENT
+    # =====================================================
 
-    # ========================================================
-    # LOCATION
-    # ========================================================
-
-    fact_df = fact_df.join(
-
-        dim_location.select(
-
-            "sk_location",
-
-            "country_name_short",
-
-            "country_name_long",
-
-            "city_name",
-
-            "region_name"
-
-        ),
-
-        on=[
-
-            "country_name_short",
-
-            "country_name_long",
-
-            "city_name",
-
-            "region_name"
-
-        ],
-
-        how="left"
+    agent = dim_agent.select(
+        "browser",
+        "os",
+        "sk_agent"
     )
 
+    df = df.join(
+        agent,
+        ["browser", "os"],
+        "left"
+    )
 
-    # ========================================================
-    # DATE
-    # ========================================================
+    # =====================================================
+    # JOIN LOCATION
+    # =====================================================
 
-    fact_df = fact_df.withColumn(
+    location = dim_location.select(
+        "country_name_long",
+        "city_name",
+        "region_name",
+        "sk_location"
+    )
 
+    df = df.join(
+        location,
+        ["country_name_long", "city_name", "region_name"],
+        "left"
+    )
+
+    # =====================================================
+    # JOIN DATE
+    # =====================================================
+
+    date_dim = dim_date.select(
         "full_date",
+        "hour",
+        "minute",
+        "sk_date"
+    )
 
-        F.to_timestamp(
-            "local_time",
-            "yyyy-MM-dd HH:mm:ss"
+    df = (
+        df
+        .withColumn(
+            "full_date",
+            F.to_date("local_time")
+        )
+        .withColumn(
+            "hour",
+            F.hour("local_time")
+        )
+        .withColumn(
+            "minute",
+            F.minute("local_time")
         )
     )
 
-
-    fact_df = fact_df.join(
-
-        dim_date.select(
-            "sk_date",
-            "full_date"
-        ),
-
-        on="full_date",
-
-        how="left"
+    df = df.join(
+        date_dim,
+        ["full_date", "hour", "minute"],
+        "left"
     )
 
+    # =====================================================
+    # FILL UNKNOWN KEYS
+    # =====================================================
 
-    # ========================================================
+    df = (
+        df
+        .fillna(
+            {
+                "sk_customer": 0,
+                "sk_agent": 0,
+                "sk_location": 0,
+                "sk_date": 0
+            }
+        )
+    )
+
+    # =====================================================
     # FINAL FACT
-    # ========================================================
+    # =====================================================
 
     return (
-
-        fact_df.select(
-
-            F.col("id").alias(
-                "view_id"
-            ),
-
-            "sk_product",
-
-            "sk_store",
-
+        df.select(
+            "id",
+            "product_id",
+            "store_id",
             "sk_customer",
-
             "sk_agent",
-
             "sk_location",
-
             "sk_date",
-
             "api_version",
-
             "collection",
-
             "current_url",
-
             "referrer_url",
-
-            F.to_timestamp(
-                "local_time",
-                "yyyy-MM-dd HH:mm:ss"
-            ).alias("local_time"),
-
+            "local_time",
             "time_stamp"
         )
+        .dropDuplicates(["id"])
     )

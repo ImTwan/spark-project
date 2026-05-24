@@ -32,7 +32,6 @@ class Config:
         print(f"conf_path_file: {conf_path_file}")
 
         conf = configparser.ConfigParser()
-        
         conf.read(conf_path_file)
 
         self.conf = conf

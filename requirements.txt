@@ -1,10 +1,11 @@
 pyspark==3.5.1
 ip2location
 user-agents
+sqlalchemy
 streamlit
 pandas
-plotly
-sqlalchemy
 psycopg2-binary
+plotly
+streamlit-autorefresh
 
 

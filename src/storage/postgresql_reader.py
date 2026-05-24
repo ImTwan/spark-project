@@ -1,42 +1,75 @@
-from pyspark.sql import DataFrame
-
-from src.utils.config import Config
+from pyspark.sql import SparkSession
 
 
-config = Config("/spark/config/spark.conf")
+# =====================================================
+# READ TABLE
+# =====================================================
 
-pg_conf = config._get_section_conf("POSTGRESQL")
+def read_jdbc_table(spark, table_name, jdbc):
 
-PG_URL = pg_conf["postgres.jdbc.url"]
+    return (
+        spark.read
+        .format("jdbc")
+        .option("url", jdbc["url"])
+        .option("dbtable", table_name)
+        .option("user", jdbc["user"])
+        .option("password", jdbc["password"])
+        .option("driver", jdbc["driver"])
+        .load()
+    )
 
-PG_USER = pg_conf["postgres.user"]
 
-PG_PASSWORD = pg_conf["postgres.password"]
+# =====================================================
+# WRITE JDBC SAFE
+# =====================================================
 
-PG_DRIVER = pg_conf["postgres.jdbc.driver"]
+def write_jdbc(
+    df,
+    table_name,
+    jdbc,
+    primary_keys
+):
 
+    spark = df.sparkSession
 
-def write_jdbc(df: DataFrame, table: str,mode: str = "append"):
-    if df.isEmpty():
-        return ( df.write .format("jdbc") \
-        .option("url", PG_URL) \
-        .option("dbtable", table) \
-        .option("user", PG_USER) \
-        .option("password", PG_PASSWORD) \
-        .option("driver", PG_DRIVER) \
-        .mode(mode) \
+    print(f"CHECK OLD DATA: {table_name}")
+
+    old_df = (
+        read_jdbc_table(
+            spark,
+            table_name,
+            jdbc
+        )
+        .select(*primary_keys)
+        .dropDuplicates(primary_keys)
+    )
+
+    print(f"REMOVE DUPLICATE INSIDE BATCH: {table_name}")
+
+    df = df.dropDuplicates(primary_keys)
+
+    print(f"REMOVE EXISTING ROWS: {table_name}")
+
+    df = df.join(
+        old_df,
+        on=primary_keys,
+        how="left_anti"
+    )
+
+    print(f"WRITE JDBC: {table_name}")
+
+    (
+        df.write
+        .format("jdbc")
+        .option("url", jdbc["url"])
+        .option("dbtable", table_name)
+        .option("user", jdbc["user"])
+        .option("password", jdbc["password"])
+        .option("driver", jdbc["driver"])
+        .option("batchsize", 500)
+        .option("isolationLevel", "NONE")
+        .mode("append")
         .save()
     )
 
-
-def read_jdbc(spark, table):
-    return (
-        spark.read \
-        .format("jdbc") \
-        .option("url", PG_URL) \
-        .option("dbtable", table) \
-        .option("user", PG_USER) \
-        .option("password", PG_PASSWORD) \
-        .option("driver", PG_DRIVER) \
-        .load()
-    )
+    print(f"✅ WRITE DONE: {table_name}")
