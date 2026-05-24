@@ -58,23 +58,23 @@ Thiết kế db và viết chương trình đưa ra các báo cáo như sau:
 
 * Chạy Postgre bằng Docker:
 ```
-bash 
+bash scripts/run_postgre.sh
 ```
 * Check bảng trên Postgre: 
 ```
-bash 
+bash scripts/check_postgre.sh
 ```
 * Chạy container trên hadoop:
 ```
-bash 
+bash scripts/run_hadoop.sh
 ```
 * Chạy Spark job:
 ```
-bash 
+bash scripts/run_spark.sh
 ```
 * Chạy app streamlit:
 ```
-bash 
+streamlit run dashboard/app.py
 ```
 
 ## Link tham khảo
