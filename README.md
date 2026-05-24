@@ -56,11 +56,25 @@ Thiết kế db và viết chương trình đưa ra các báo cáo như sau:
 
 ## Phụ lục
 
-**Cách chạy chương trình sử dụng thư viện ngoài thông qua conda**
-
-
+* Chạy Postgre bằng Docker:
 ```
-
+bash 
+```
+* Check bảng trên Postgre: 
+```
+bash 
+```
+* Chạy container trên hadoop:
+```
+bash 
+```
+* Chạy Spark job:
+```
+bash 
+```
+* Chạy app streamlit:
+```
+bash 
 ```
 
 ## Link tham khảo
