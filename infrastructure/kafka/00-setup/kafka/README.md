@@ -48,8 +48,8 @@ kafka-console-consumer --consumer.config /etc/kafka/consumer.properties --bootst
 [akqh](http://localhost:8180)
 
 ```
-username: admin
-password: Unigap@2024
+username: 
+password: 
 ```
 
 ## References
