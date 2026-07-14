@@ -11,7 +11,7 @@ trữ vào db `postgres`
 
 - Kafka: Cụm `Kafka` setup ở dưới local và `topic` chứa dữ liệu về hành vi người dùng trên website đã làm trong project
   của module `Kafka`
-- Spark: Cụm `Spark` cài đặt dưới local trong khóa học
+- Spark: Cụm `Spark` cài đặt dưới local 
 - Schema của dữ liệu
 
 **Đầu ra:**
